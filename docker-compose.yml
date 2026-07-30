@@ -1,0 +1,68 @@
+# Production stack: MongoDB + the API + the mood-aggregation scheduler,
+# fronted by Caddy for automatic HTTPS. Run with:
+#
+#   docker compose up -d --build
+#
+# See README.md "Docker deployment" for full setup instructions.
+
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    volumes:
+      - mongo_data:/data/db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME:-citizenpulse}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
+    # Not published to the host - only reachable by other containers on
+    # this compose network. The API talks to it via the service name "mongo".
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  api:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      mongo:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      MONGO_URI: mongodb://${MONGO_ROOT_USERNAME:-citizenpulse}:${MONGO_ROOT_PASSWORD}@mongo:27017/masauti?authSource=admin&retryWrites=true&w=majority
+    expose:
+      - "4000"
+    # Not published directly either - Caddy is the only public entrypoint.
+
+  scheduler:
+    build: .
+    command: ["node", "utils/scheduler.js"]
+    restart: unless-stopped
+    depends_on:
+      mongo:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      MONGO_URI: mongodb://${MONGO_ROOT_USERNAME:-citizenpulse}:${MONGO_ROOT_PASSWORD}@mongo:27017/masauti?authSource=admin&retryWrites=true&w=majority
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - api
+
+volumes:
+  mongo_data:
+  caddy_data:
+  caddy_config:
