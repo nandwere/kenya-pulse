@@ -33,9 +33,8 @@ services:
       - .env
     environment:
       MONGO_URI: mongodb://${MONGO_ROOT_USERNAME:-citizenpulse}:${MONGO_ROOT_PASSWORD}@mongo:27017/masauti?authSource=admin&retryWrites=true&w=majority
-    expose:
-      - "4000"
-    # Not published directly either - Caddy is the only public entrypoint.
+    ports:
+    - "127.0.0.1:8089:4000"
 
   scheduler:
     build: .
@@ -48,19 +47,6 @@ services:
       - .env
     environment:
       MONGO_URI: mongodb://${MONGO_ROOT_USERNAME:-citizenpulse}:${MONGO_ROOT_PASSWORD}@mongo:27017/masauti?authSource=admin&retryWrites=true&w=majority
-
-  caddy:
-    image: caddy:2-alpine
-    restart: unless-stopped
-    ports:
-    - "8089:80"
-    - "8449:443"
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - caddy_config:/config
-    depends_on:
-      - api
 
 volumes:
   mongo_data:
