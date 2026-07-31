@@ -1,6 +1,6 @@
 const County = require('../models/County');
 const MoodSnapshot = require('../models/MoodSnapshot');
-const asyncHandler = require('../utils/asyncHandler');
+const { asyncHandler } = require('../utils/asyncHandler');
 
 // GET /api/home/summary
 // Powers the Home Dashboard: Kenya Mood Index, trending, AI daily summary.

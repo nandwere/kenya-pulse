@@ -1,12 +1,27 @@
 require('dotenv').config();
 const mongoose = require('mongoose');
-const connectDB = require('../config/db');
-const KENYA_COUNTIES = require('./kenyaCounties');
+const connectDB = require('../src/config/db');
+const KENYA_COUNTIES = require('../src/utils/kenyaCounties');
+const bcrypt = require('bcryptjs');
+const env = require('../src/config/env');
+const AdminUser = require('../src/models/AdminUser');
 
-const County = require('../models/County');
-const DailyQuestion = require('../models/DailyQuestion');
-const MoodSnapshot = require('../models/MoodSnapshot');
-const CommunityPost = require('../models/CommunityPost');
+const County = require('../src/models/County');
+const DailyQuestion = require('../src/models/DailyQuestion');
+const MoodSnapshot = require('../src/models/MoodSnapshot');
+const CommunityPost = require('../src/models/CommunityPost');
+
+function parseArgs() {
+  const args = {};
+  process.argv.slice(2).forEach((arg, i, arr) => {
+    if (arg.startsWith('--')) {
+      const key = arg.slice(2);
+      const value = arr[i + 1];
+      args[key] = value;
+    }
+  });
+  return args;
+}
 
 // A few counties get richer seed data (matching the mockups) so the app
 // has something interesting to show out of the box. Everything else in
@@ -30,6 +45,35 @@ const FEATURED = {
   'Nakuru County': { moodScore: 52, sentiment: 'neutral' },
 };
 
+async function seedAdmin() {
+  const { email, password } = parseArgs();
+
+  if (!email || !password) {
+    console.error('Usage: npm run seed:superadmin -- --email you@masauti.app --password Temp1234!');
+    process.exit(1);
+  }
+
+  const existing = await AdminUser.findOne({ email: email.toLowerCase() });
+  if (existing) {
+    console.error(`An admin with email ${email} already exists.`);
+    process.exit(1);
+  }
+
+  const passwordHash = await bcrypt.hash(password, env.bcryptRounds);
+
+  const admin = await AdminUser.create({
+    email: email.toLowerCase(),
+    passwordHash,
+    role: 'SUPER_ADMIN',
+    mustChangePassword: true,
+    mfaEnabled: false,
+    active: true,
+  });
+
+  console.log(`Created SUPER_ADMIN ${admin.email} (id: ${admin._id})`);
+  console.log('They will be prompted to set up MFA and change their password on first login.');
+}
+
 const run = async () => {
   await connectDB();
 
@@ -39,6 +83,8 @@ const run = async () => {
     MoodSnapshot.deleteMany({}),
     CommunityPost.deleteMany({}),
   ]);
+
+  seedAdmin();
 
   const counties = KENYA_COUNTIES.map((name) => ({
     name,

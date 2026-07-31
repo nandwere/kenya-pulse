@@ -1,5 +1,5 @@
 const CommunityPost = require('../models/CommunityPost');
-const asyncHandler = require('../utils/asyncHandler');
+const { asyncHandler } = require('../utils/asyncHandler');
 
 // GET /api/community?scope=all|county|following&county=Kisumu&page=1
 // Powers the "All / My County / Following" tabs on Community Insights.

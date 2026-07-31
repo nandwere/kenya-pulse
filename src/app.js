@@ -3,7 +3,8 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const compression = require('compression');
-
+const env = require('./config/env');
+const adminRoutes = require('./routes/adminRoutes');
 const routes = require('./routes');
 const { notFound, errorHandler } = require('./middleware/errorHandler');
 const { generalLimiter } = require('./middleware/rateLimiter');
@@ -26,6 +27,7 @@ app.use(generalLimiter);
 app.get('/health', (req, res) => res.json({ status: 'ok', timestamp: new Date() }));
 
 app.use('/api', routes);
+app.use('/api/admin', adminRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

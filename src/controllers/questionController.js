@@ -1,5 +1,5 @@
 const DailyQuestion = require('../models/DailyQuestion');
-const asyncHandler = require('../utils/asyncHandler');
+const { asyncHandler } = require('../utils/asyncHandler');
 
 const startOfToday = () => {
   const d = new Date();

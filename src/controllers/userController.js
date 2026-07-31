@@ -1,7 +1,9 @@
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
-const asyncHandler = require('../utils/asyncHandler');
+const { asyncHandler } = require('../utils/asyncHandler');
+const userAdminService = require('../services/userAdminService');
+
 
 const signToken = (anonId) =>
   jwt.sign({ anonId }, process.env.JWT_SECRET, {
@@ -46,4 +48,39 @@ const updateCounty = asyncHandler(async (req, res) => {
   res.json({ county: req.user.county });
 });
 
-module.exports = { registerAnon, getMyContribution, updateCounty };
+const VALID_STATUSES = ['ACTIVE', 'SUSPENDED', 'BANNED'];
+
+const list = asyncHandler(async (req, res) => {
+  const { page, limit, sort, order, search, status } = req.query;
+
+  const result = await userAdminService.listUsers({
+    page: page ? Number(page) : 1,
+    limit: limit ? Number(limit) : 25,
+    sort: sort || 'createdAt',
+    order: order === 'asc' ? 'asc' : 'desc',
+    search,
+    status,
+  });
+
+  res.json(result);
+});
+
+const getOne = asyncHandler(async (req, res) => {
+  const user = await userAdminService.getUserById(req.params.id);
+  if (!user) throw new ApiError(404, 'User not found');
+  res.json(user);
+});
+
+const updateStatus = asyncHandler(async (req, res) => {
+  const { status } = req.body;
+  if (!VALID_STATUSES.includes(status)) {
+    throw new ApiError(400, `status must be one of: ${VALID_STATUSES.join(', ')}`);
+  }
+
+  const user = await userAdminService.updateUserStatus(req.params.id, status);
+  if (!user) throw new ApiError(404, 'User not found');
+
+  res.json({ success: true });
+});
+
+module.exports = { registerAnon, getMyContribution, updateCounty, list, getOne, updateStatus };
