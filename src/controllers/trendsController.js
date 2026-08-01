@@ -1,5 +1,5 @@
 const MoodSnapshot = require('../models/MoodSnapshot');
-const asyncHandler = require('../utils/asyncHandler');
+const { asyncHandler } = require('../utils/asyncHandler');
 
 // GET /api/trends/history?days=30
 // Returns the last N days of MoodSnapshot documents, oldest first - this is
